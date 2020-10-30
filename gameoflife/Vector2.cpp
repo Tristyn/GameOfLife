@@ -1,30 +1,34 @@
 #include "Vector2.h"
+
 namespace Conway
 {
 	template<typename T>
-	Vector2<T>::Vector2() = default;
+	Vector2<T>::Vector2(T x, T y) : mX(x), mY(y) { };
 
 	template<typename T>
-	Vector2<T> operator +(const Vector2<T>& left, const Vector2<T>& right)
+	T Vector2<T>::GetX() const
 	{
-		return Vector2<T>(left->m_x + right->m_x, left->m_y + right->m_y);
+		return mX;
 	}
 
 	template<typename T>
-	Vector2<T> operator -(const Vector2<T>& left, const Vector2<T>& right)
+	T Vector2<T>::GetY() const
 	{
-		return Vector2<T>(left->m_x - right->m_x, left->m_y - right->m_y);
+		return mY;
 	}
 
 	template<typename T>
-	bool operator ==(const Vector2<T>& left, const Vector2<T>& right)
+	T Vector2<T>::SetX()
 	{
-		return left->m_x == right->m_x && left->m_y == right->m_y;
+		return mX;
 	}
 
 	template<typename T>
-	bool operator !=(const Vector2<T>& left, const Vector2<T>& right)
+	T Vector2<T>::SetY()
 	{
-		return left->m_x != right->m_x || left->m_y != right->m_y;
+		return mY;
 	}
+	
+	// Explicit instantiations
+	template class Vector2<int>;
 }
