@@ -7,6 +7,12 @@
 #include "Vector2.h"
 namespace Conway
 {
+	enum class ChunkBuffer
+	{
+		kFirst,
+		kSecond
+	};
+
 	template<size_t _SizeX, size_t _SizeY>
 	class Chunk
 	{
@@ -15,10 +21,10 @@ namespace Conway
 		static const size_t kCapacity = _SizeX * _SizeY;
 
 	private:
-		std::array<Cell, kCapacity>* mCells;
+		std::array<std::pair<Cell, Cell>, kCapacity>* mCells;
 	public:
 		Chunk();
-		Chunk(std::array<Cell, kCapacity>* cells);
+		Chunk(std::array<std::pair<Cell, Cell>, kCapacity>* cells);
 
 		// Rule of 5
 		Chunk(const Chunk& other); // Copy constructor
@@ -28,12 +34,12 @@ namespace Conway
 		~Chunk(); // Destructor
 
 		size_t GetIndex(const Vector2Int pos) const;
-		Cell GetCell(const Vector2Int pos) const;
-		void SetCell(const Vector2Int pos, const Cell cell);
-		std::array<Conway::Cell, 8> GetCellNeigbors(const Vector2Int pos);
+		Cell GetCell(const Vector2Int pos, const ChunkBuffer readBuffer) const;
+		void SetCell(const Vector2Int pos, const Cell cell, const ChunkBuffer writeBuffer);
+		std::array<Cell, 8> GetCellNeigbors(const Vector2Int pos, const ChunkBuffer readBuffer) const;
 
-		static void Iterate(Chunk*& gen0, Chunk*& gen1);
-		static void Display(const Chunk* chunk);
+		static void Iterate(Chunk*& chunk, ChunkBuffer readBuffer);
+		static void Display(const Chunk* chunk, ChunkBuffer readBuffer);
 	};
 
 	// Define common types we'll use

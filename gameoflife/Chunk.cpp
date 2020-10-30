@@ -8,16 +8,16 @@ namespace Conway
 	template<size_t _SizeX, size_t _SizeY>
 	Chunk<_SizeX, _SizeY>::Chunk()
 	{
-		mCells = new std::array<Cell, kCapacity>();
+		mCells = new std::array<std::pair<Cell, Cell>, kCapacity>();
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	Chunk<_SizeX, _SizeY>::Chunk(std::array<Cell, kCapacity>* cells)
+	Chunk<_SizeX, _SizeY>::Chunk(std::array<std::pair<Cell, Cell>, kCapacity>* cells)
 		: mCells(nullptr)
 	{
 		if (cells)
 		{
-			mCells = new std::array<Cell, kCapacity>(*cells);
+			mCells = new std::array<std::pair<Cell, Cell>, kCapacity>(*cells);
 		}
 	}
 
@@ -38,7 +38,7 @@ namespace Conway
 	// Avoiding reading junk is the real deal, memory corruption is serious.
 	template<size_t _SizeX, size_t _SizeY>
 	Chunk<_SizeX, _SizeY>::Chunk(Chunk&& other) noexcept // Move constructor
-		: mCells(std::exchange(other.mCells, nullptr)) 
+		: mCells(std::exchange(other.mCells, nullptr))
 	{
 
 	}
@@ -87,7 +87,7 @@ namespace Conway
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	Cell Chunk<_SizeX, _SizeY>::GetCell(const Vector2Int pos) const
+	Cell Chunk<_SizeX, _SizeY>::GetCell(const Vector2Int pos, const ChunkBuffer readBuffer) const
 	{
 		if (pos.GetX() < 0 || pos.GetX() >= _SizeX)
 		{
@@ -98,56 +98,71 @@ namespace Conway
 			return Cell::dead;
 		}
 		size_t index = GetIndex(pos);
-		return (*mCells)[index];
+		std::pair<Cell, Cell> pair = (*mCells)[index];
+		if (readBuffer == ChunkBuffer::kFirst)
+		{
+			return pair.first;
+		}
+		else
+		{
+			return pair.second;
+		}
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	void Chunk<_SizeX, _SizeY>::SetCell(const Vector2Int pos, const Cell cell)
+	void Chunk<_SizeX, _SizeY>::SetCell(const Vector2Int pos, const Cell cell, const ChunkBuffer writeBuffer)
 	{
 		size_t index = GetIndex(pos);
-		(*mCells)[index] = cell;
+		if (writeBuffer == ChunkBuffer::kFirst)
+		{
+			(*mCells)[index].first = cell;
+		}
+		else
+		{
+			(*mCells)[index].second = cell;
+		}
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	std::array<Conway::Cell, 8> Chunk<_SizeX, _SizeY>::GetCellNeigbors(const Vector2Int pos)
+	std::array<Cell, 8> Chunk<_SizeX, _SizeY>::GetCellNeigbors(const Vector2Int pos, const ChunkBuffer readBuffer) const
 	{
 		// Moore neighborhood
 		std::array<Conway::Cell, 8> array = {};
-		array[0] = GetCell(pos + Vector2Int(-1, -1));
-		array[1] = GetCell(pos + Vector2Int(-1, 0));
-		array[2] = GetCell(pos + Vector2Int(-1, 1));
-		array[3] = GetCell(pos + Vector2Int(0, -1));
-		array[4] = GetCell(pos + Vector2Int(0, 1));
-		array[5] = GetCell(pos + Vector2Int(1, -1));
-		array[6] = GetCell(pos + Vector2Int(1, 0));
-		array[7] = GetCell(pos + Vector2Int(1, 1));
+		array[0] = GetCell(pos + Vector2Int(-1, -1), readBuffer);
+		array[1] = GetCell(pos + Vector2Int(-1, 0), readBuffer);
+		array[2] = GetCell(pos + Vector2Int(-1, 1), readBuffer);
+		array[3] = GetCell(pos + Vector2Int(0, -1), readBuffer);
+		array[4] = GetCell(pos + Vector2Int(0, 1), readBuffer);
+		array[5] = GetCell(pos + Vector2Int(1, -1), readBuffer);
+		array[6] = GetCell(pos + Vector2Int(1, 0), readBuffer);
+		array[7] = GetCell(pos + Vector2Int(1, 1), readBuffer);
 		return array;
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	void Chunk<_SizeX, _SizeY>::Iterate(Chunk*& gen0, Chunk*& gen1)
+	void Chunk<_SizeX, _SizeY>::Iterate(Chunk*& chunk, ChunkBuffer readBuffer)
 	{
+		ChunkBuffer writeBuffer = readBuffer == ChunkBuffer::kFirst ? ChunkBuffer::kSecond : ChunkBuffer::kFirst;
 		for (int x = 0; x < _SizeX; x++)
 		{
 			for (int y = 0; y < _SizeY; y++)
 			{
 				Vector2Int pos = Vector2Int(x, y);
-				const Cell cell = gen0->GetCell(pos);
-				std::array<Cell, 8> neighbors = gen0->GetCellNeigbors(pos);
-				gen1->SetCell(pos, Rules::Iteration(cell, neighbors));
+				const Cell cell = chunk->GetCell(pos, readBuffer);
+				std::array<Cell, 8> neighbors = chunk->GetCellNeigbors(pos, readBuffer);
+				chunk->SetCell(pos, Rules::Iteration(cell, neighbors), writeBuffer);
 			}
 		}
-		std::swap(gen0, gen1);
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	void Chunk<_SizeX, _SizeY>::Display(const Chunk* chunk)
+	void Chunk<_SizeX, _SizeY>::Display(const Chunk* chunk, ChunkBuffer readBuffer)
 	{
 		for (int x = 0; x < _SizeX; x++)
 		{
 			for (int y = 0; y < _SizeY; y++)
 			{
-				if (chunk->GetCell(Vector2Int(x, y)) == Conway::CellState::kAlive)
+				if (chunk->GetCell(Vector2Int(x, y), readBuffer) == Conway::CellState::kAlive)
 				{
 					std::cout << "* ";
 				}
