@@ -35,7 +35,8 @@ namespace Conway
 
 	// Notice I'm using mCells(std::exchange(other.mCells, nullptr)) instead of 
 	// std::swap(mCells, other.mCells), I can't trust that mCells has already been
-	// zero initialized because someone could call my constructor on junk memory.
+	// zero initialized because someone could call my constructor on junk memory,
+	// then theres the potential for a random piece of memory at mCells to be freed later.
 	// Avoiding reading junk is the real deal, memory corruption is serious.
 	template<size_t _SizeX, size_t _SizeY>
 	Chunk<_SizeX, _SizeY>::Chunk(Chunk&& other) noexcept // Move constructor
