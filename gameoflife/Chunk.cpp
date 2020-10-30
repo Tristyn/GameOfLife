@@ -53,10 +53,6 @@ namespace Conway
 		// - move assignment operator is called, all fields of this and Chunk(other) swap
 		// - this is returned, which now contains members passed in by other
 		// - Chunk(other).~Chunk() is called, deleting everything that used to be this (because this is getting overwritten)
-
-		// You coud alternatively do
-		// std::swap(mCells, other.mCells);
-		// return *this;
 		return *this = Chunk(other);
 	}
 
