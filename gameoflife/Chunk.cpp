@@ -8,23 +8,24 @@ namespace Conway
 	template<size_t _SizeX, size_t _SizeY>
 	Chunk<_SizeX, _SizeY>::Chunk()
 	{
-		mCells = new std::array<std::pair<Cell, Cell>, kCapacity>();
+		mCells = new std::array<Cell, kCapacity>();
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	Chunk<_SizeX, _SizeY>::Chunk(std::array<std::pair<Cell, Cell>, kCapacity>* cells)
+	Chunk<_SizeX, _SizeY>::Chunk(std::array<Cell, kCapacity>* cells)
 		: mCells(nullptr)
 	{
 		if (cells)
 		{
-			mCells = new std::array<std::pair<Cell, Cell>, kCapacity>(*cells);
+			mCells = new std::array<Cell, kCapacity>(*cells);
 		}
 	}
 
 	// Chunk will be implementing rule of 5, a C++11 way to avoid copies. Using the move constructor,
 	// the chunk will copy it's internal std::array pointer to the new object, leaving the moved
-	// object in a 'moved' state. The manager can avoid allocations by tracking which chunks are unpopulated,
-	// and when a chunk needs population we will reuse the array of an unpopulated chunk if possible. 
+	// object in a 'moved' state. You could imagine a manager implementing an infinite grid of chunks
+	// that can avoid allocations by tracking which chunks are unpopulated,
+	// and when a chunk needs population it will reuse the guts of an unpopulated chunk with move assignment. 
 	template<size_t _SizeX, size_t _SizeY>
 	Chunk<_SizeX, _SizeY>::Chunk(const Chunk& other) // Copy constructor
 		: Chunk(other.mCells)
@@ -72,107 +73,45 @@ namespace Conway
 		delete mCells;
 	}
 
+	/// <summary>
+	/// Returns if the position is within the bounds of the chunk
+	/// </summary>
 	template<size_t _SizeX, size_t _SizeY>
-	size_t Chunk<_SizeX, _SizeY>::GetIndex(const Vector2Int pos) const
+	bool Chunk<_SizeX, _SizeY>::CellExists(const Vector2Int pos)
 	{
 		if (pos.GetX() < 0 || pos.GetX() >= _SizeX)
 		{
-			throw new std::out_of_range("x out of range");
+			return false;
 		}
 		if (pos.GetY() < 0 || pos.GetY() >= _SizeY)
 		{
-			throw new std::out_of_range("y out of range");
+			return false;
 		}
-		return pos.GetX() + (pos.GetY() * _SizeX);
+		return true;
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	Cell Chunk<_SizeX, _SizeY>::GetCell(const Vector2Int pos, const ChunkBuffer readBuffer) const
+	size_t Chunk<_SizeX, _SizeY>::GetIndex(const Vector2Int position)
 	{
-		if (pos.GetX() < 0 || pos.GetX() >= _SizeX)
+		if (!CellExists(position))
 		{
-			return Cell::dead;
+			throw new std::out_of_range("position out of range");
 		}
-		if (pos.GetY() < 0 || pos.GetY() >= _SizeY)
-		{
-			return Cell::dead;
-		}
-		size_t index = GetIndex(pos);
-		std::pair<Cell, Cell> pair = (*mCells)[index];
-		if (readBuffer == ChunkBuffer::kFirst)
-		{
-			return pair.first;
-		}
-		else
-		{
-			return pair.second;
-		}
+		return position.GetX() + (position.GetY() * _SizeX);
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	void Chunk<_SizeX, _SizeY>::SetCell(const Vector2Int pos, const Cell cell, const ChunkBuffer writeBuffer)
+	Cell Chunk<_SizeX, _SizeY>::GetCell(const Vector2Int pos) const
 	{
 		size_t index = GetIndex(pos);
-		if (writeBuffer == ChunkBuffer::kFirst)
-		{
-			(*mCells)[index].first = cell;
-		}
-		else
-		{
-			(*mCells)[index].second = cell;
-		}
+		return (*mCells)[index];
 	}
 
 	template<size_t _SizeX, size_t _SizeY>
-	std::array<Cell, 8> Chunk<_SizeX, _SizeY>::GetCellNeigbors(const Vector2Int pos, const ChunkBuffer readBuffer) const
+	void Chunk<_SizeX, _SizeY>::SetCell(const Vector2Int pos, const Cell cell)
 	{
-		// Moore neighborhood
-		std::array<Conway::Cell, 8> array = {};
-		array[0] = GetCell(pos + Vector2Int(-1, -1), readBuffer);
-		array[1] = GetCell(pos + Vector2Int(-1, 0), readBuffer);
-		array[2] = GetCell(pos + Vector2Int(-1, 1), readBuffer);
-		array[3] = GetCell(pos + Vector2Int(0, -1), readBuffer);
-		array[4] = GetCell(pos + Vector2Int(0, 1), readBuffer);
-		array[5] = GetCell(pos + Vector2Int(1, -1), readBuffer);
-		array[6] = GetCell(pos + Vector2Int(1, 0), readBuffer);
-		array[7] = GetCell(pos + Vector2Int(1, 1), readBuffer);
-		return array;
-	}
-
-	template<size_t _SizeX, size_t _SizeY>
-	void Chunk<_SizeX, _SizeY>::Iterate(Chunk*& chunk, ChunkBuffer readBuffer)
-	{
-		ChunkBuffer writeBuffer = readBuffer == ChunkBuffer::kFirst ? ChunkBuffer::kSecond : ChunkBuffer::kFirst;
-		for (int x = 0; x < _SizeX; x++)
-		{
-			for (int y = 0; y < _SizeY; y++)
-			{
-				Vector2Int pos = Vector2Int(x, y);
-				const Cell cell = chunk->GetCell(pos, readBuffer);
-				std::array<Cell, 8> neighbors = chunk->GetCellNeigbors(pos, readBuffer);
-				chunk->SetCell(pos, Rules::Iteration(cell, neighbors), writeBuffer);
-			}
-		}
-	}
-
-	template<size_t _SizeX, size_t _SizeY>
-	void Chunk<_SizeX, _SizeY>::Display(const Chunk* chunk, ChunkBuffer readBuffer)
-	{
-		for (int x = 0; x < _SizeX; x++)
-		{
-			for (int y = 0; y < _SizeY; y++)
-			{
-				if (chunk->GetCell(Vector2Int(x, y), readBuffer) == Conway::CellState::kAlive)
-				{
-					std::cout << "* ";
-				}
-				else
-				{
-					std::cout << "  ";
-				}
-			}
-			std::cout << std::endl;
-		}
+		size_t index = GetIndex(pos);
+		(*mCells)[index] = cell;
 	}
 
 	// To be able to use these templated functions every concrete

@@ -1,5 +1,6 @@
 #ifndef __CELL__
 #define __CELL__
+
 #include <cstdint>
 
 namespace Conway
@@ -15,13 +16,13 @@ namespace Conway
 	private:
 		Conway::CellState m_value;
 	public:
-		static const Cell alive;
-		static const Cell dead;
+		static const Cell kAlive;
+		static const Cell kDead;
 
 		Cell() = default;
 		Cell(Conway::CellState aCellState);
 		operator const Conway::CellState() const;
-		explicit operator bool() = delete;
+		explicit operator bool() = delete; // prevents if(cell)
 	};
 }
 #endif // __CELL__
