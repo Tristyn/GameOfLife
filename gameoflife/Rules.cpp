@@ -31,12 +31,9 @@ namespace Conway
 		int count = 0;
 		for (const Cell cell : cells)
 		{
-			switch (cell)
+			if (cell == Conway::CellState::kAlive)
 			{
-				// Implicit cast to CellState is really nice
-			case Conway::CellState::kAlive:
 				count++;
-				break;
 			}
 		}
 		return count;
